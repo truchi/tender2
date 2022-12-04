@@ -38,19 +38,21 @@ impl Spans {
     }
 
     pub fn scan(&self) -> Scan {
-        self.iter().enumerate().scan(0, |c, (i, span)| {
-            let column = *c;
-            *c += span.width;
-            Some((i, column, span))
+        self.iter().enumerate().scan(0, |column, (index, span)| {
+            let c = *column;
+            *column += span.width;
+            Some((index, c, span))
         })
     }
 
     pub fn scan_mut(&mut self) -> ScanMut {
-        self.iter_mut().enumerate().scan(0, |c, (i, span)| {
-            let column = *c;
-            *c += span.width;
-            Some((i, column, span))
-        })
+        self.iter_mut()
+            .enumerate()
+            .scan(0, |column, (index, span)| {
+                let c = *column;
+                *column += span.width;
+                Some((index, c, span))
+            })
     }
 
     // pub fn get(&self, column: u16) -> Option<(usize, u16, &Span)> {
@@ -75,6 +77,7 @@ impl Spans {
     //         .find(|(i, c, span)| column < c + span.width)
     // }
 
+    // TODO handle same consecutive styles
     pub fn paint(&mut self, column: u16, span: Span) {
         let mut last = (0, 0, &default());
         let mut scan = self

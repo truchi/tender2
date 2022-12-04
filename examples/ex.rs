@@ -1,7 +1,12 @@
-use tender::style::Style;
+use unicode_segmentation::UnicodeSegmentation;
 
 fn main() {
-    dbg!(std::mem::size_of::<Style>());
-    dbg!(std::mem::size_of::<[Style; 2]>());
-    dbg!(std::mem::size_of::<Option<Style>>());
+    let s = "\0a̐\0éö̲\r\n";
+    let g = UnicodeSegmentation::graphemes(s, true).collect::<Vec<&str>>();
+    let c = collect(g);
+    dbg!(c);
+}
+
+fn collect<I: IntoIterator>(i: I) -> Vec<I::Item> {
+    i.into_iter().collect()
 }
