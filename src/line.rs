@@ -120,7 +120,6 @@ impl Line {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pretty_assertions::assert_ne;
     use test_case::test_case;
 
     #[test_case("abc🦀d🦀f", 0, "!!!" => "!!!🦀d🦀f"; "Paint at 0")]

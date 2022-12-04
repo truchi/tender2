@@ -163,7 +163,7 @@ impl Spans {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use pretty_assertions::assert_eq;
+    use test_case::test_case;
 
     const RED: Color = Color { r: 255, g: 0, b: 0 };
     const GREEN: Color = Color { r: 0, g: 255, b: 0 };
@@ -220,251 +220,172 @@ mod tests {
         );
     }
 
-    #[test]
-    fn paint_1() {
+    #[test_case(
         // ___
         // ___ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (3, BLUE)]);
-        spans.paint(0, new_span(3, YELLOW));
-
-        assert_eq!(spans, new_spans([(3, YELLOW), (3, GREEN), (3, BLUE)]));
-
+        [(3, RED), (3, GREEN), (3, BLUE)], 0, (3, YELLOW)
+        => vec![(3, YELLOW), (3, GREEN), (3, BLUE)];
+        "Test 1"
+    )]
+    #[test_case(
         //     ___
         // ___ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (3, BLUE)]);
-        spans.paint(3, new_span(3, YELLOW));
-
-        assert_eq!(spans, new_spans([(3, RED), (3, YELLOW), (3, BLUE)]));
-
+        [(3, RED), (3, GREEN), (3, BLUE)], 3, (3, YELLOW)
+        => vec![(3, RED), (3, YELLOW), (3, BLUE)];
+        "Test 2"
+    )]
+    #[test_case(
         //         ___
         // ___ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (3, BLUE)]);
-        spans.paint(6, new_span(3, YELLOW));
-
-        assert_eq!(spans, new_spans([(3, RED), (3, GREEN), (3, YELLOW)]));
-    }
-
-    #[test]
-    fn paint_2() {
+        [(3, RED), (3, GREEN), (3, BLUE)], 6, (3, YELLOW)
+        => vec![(3, RED), (3, GREEN), (3, YELLOW)];
+        "Test 3"
+    )]
+    #[test_case(
         // __
         // ___ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (3, BLUE)]);
-        spans.paint(0, new_span(2, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(2, YELLOW), (1, RED), (3, GREEN), (3, BLUE)])
-        );
-
+        [(3, RED), (3, GREEN), (3, BLUE)], 0, (2, YELLOW)
+        => vec![(2, YELLOW), (1, RED), (3, GREEN), (3, BLUE)];
+        "Test 4"
+    )]
+    #[test_case(
         //     __
         // ___ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (3, BLUE)]);
-        spans.paint(3, new_span(2, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(3, RED), (2, YELLOW), (1, GREEN), (3, BLUE)])
-        );
-
+        [(3, RED), (3, GREEN), (3, BLUE)], 3, (2, YELLOW)
+        => vec![(3, RED), (2, YELLOW), (1, GREEN), (3, BLUE)];
+        "Test 5"
+    )]
+    #[test_case(
         //         __
         // ___ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (3, BLUE)]);
-        spans.paint(6, new_span(2, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(3, RED), (3, GREEN), (2, YELLOW), (1, BLUE)])
-        );
-    }
-
-    #[test]
-    fn paint_3() {
+        [(3, RED), (3, GREEN), (3, BLUE)], 6, (2, YELLOW)
+        => vec![(3, RED), (3, GREEN), (2, YELLOW), (1, BLUE)];
+        "Test 6"
+    )]
+    #[test_case(
         //  __
         // ___ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (3, BLUE)]);
-        spans.paint(1, new_span(2, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(1, RED), (2, YELLOW), (3, GREEN), (3, BLUE)])
-        );
-
+        [(3, RED), (3, GREEN), (3, BLUE)], 1, (2, YELLOW)
+        => vec![(1, RED), (2, YELLOW), (3, GREEN), (3, BLUE)];
+        "Test 7"
+    )]
+    #[test_case(
         //      __
         // ___ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (3, BLUE)]);
-        spans.paint(4, new_span(2, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(3, RED), (1, GREEN), (2, YELLOW), (3, BLUE)])
-        );
-
+        [(3, RED), (3, GREEN), (3, BLUE)], 4, (2, YELLOW)
+        => vec![(3, RED), (1, GREEN), (2, YELLOW), (3, BLUE)];
+        "Test 8"
+    )]
+    #[test_case(
         //          __
         // ___ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (3, BLUE)]);
-        spans.paint(7, new_span(2, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(3, RED), (3, GREEN), (1, BLUE), (2, YELLOW)])
-        );
-    }
-
-    #[test]
-    fn paint_4() {
+        [(3, RED), (3, GREEN), (3, BLUE)], 7, (2, YELLOW)
+        => vec![(3, RED), (3, GREEN), (1, BLUE), (2, YELLOW)];
+        "Test 9"
+    )]
+    #[test_case(
         //    __
         // ______ ______ ______
-
-        let mut spans = new_spans([(6, RED), (6, GREEN), (6, BLUE)]);
-        spans.paint(3, new_span(2, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(3, RED), (2, YELLOW), (1, RED), (6, GREEN), (6, BLUE)])
-        );
-
+        [(6, RED), (6, GREEN), (6, BLUE)], 3, (2, YELLOW)
+        => vec![(3, RED), (2, YELLOW), (1, RED), (6, GREEN), (6, BLUE)];
+        "Test 10"
+    )]
+    #[test_case(
         //          _
         // ______ ______ ______
-
-        let mut spans = new_spans([(6, RED), (6, GREEN), (6, BLUE)]);
-        spans.paint(8, new_span(1, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(6, RED), (2, GREEN), (1, YELLOW), (3, GREEN), (6, BLUE)])
-        );
-
+        [(6, RED), (6, GREEN), (6, BLUE)], 8, (1, YELLOW)
+        => vec![(6, RED), (2, GREEN), (1, YELLOW), (3, GREEN), (6, BLUE)];
+        "Test 11"
+    )]
+    #[test_case(
         //                __
         // ______ ______ ______
-
-        let mut spans = new_spans([(6, RED), (6, GREEN), (6, BLUE)]);
-        spans.paint(13, new_span(2, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(6, RED), (6, GREEN), (1, BLUE), (2, YELLOW), (3, BLUE)])
-        );
-    }
-
-    #[test]
-    fn paint_5() {
+        [(6, RED), (6, GREEN), (6, BLUE)], 13, (2, YELLOW)
+        => vec![(6, RED), (6, GREEN), (1, BLUE), (2, YELLOW), (3, BLUE)];
+        "Test 12"
+    )]
+    #[test_case(
         //     _ _
         // ___ _ _ ___
-
-        let mut spans = new_spans([(3, RED), (1, GREEN), (1, RED), (3, BLUE)]);
-        spans.paint(3, new_span(2, YELLOW));
-
-        assert_eq!(spans, new_spans([(3, RED), (2, YELLOW), (3, BLUE)]));
-
+        [(3, RED), (1, GREEN), (1, RED), (3, BLUE)], 3, (2, YELLOW)
+        => vec![(3, RED), (2, YELLOW), (3, BLUE)];
+        "Test 13"
+    )]
+    #[test_case(
         //     _ __ _
         // ___ _ __ _ ___
-
-        let mut spans = new_spans([(3, RED), (1, GREEN), (2, BLUE), (1, GREEN), (3, RED)]);
-        spans.paint(3, new_span(4, YELLOW));
-
-        assert_eq!(spans, new_spans([(3, RED), (4, YELLOW), (3, RED)]));
-    }
-
-    #[test]
-    fn paint_6() {
+        [(3, RED), (1, GREEN), (2, BLUE), (1, GREEN), (3, RED)], 3, (4, YELLOW)
+        => vec![(3, RED), (4, YELLOW), (3, RED)];
+        "Test 14"
+    )]
+    #[test_case(
         //     ___ _
         // ___ ___ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (3, BLUE), (3, RED)]);
-        spans.paint(3, new_span(4, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(3, RED), (4, YELLOW), (2, BLUE), (3, RED)])
-        );
-
+        [(3, RED), (3, GREEN), (3, BLUE), (3, RED)], 3, (4, YELLOW)
+        => vec![(3, RED), (4, YELLOW), (2, BLUE), (3, RED)];
+        "Test 15"
+    )]
+    #[test_case(
         //     ___ __ _
         // ___ ___ __ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (2, BLUE), (3, GREEN), (3, RED)]);
-        spans.paint(3, new_span(6, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(3, RED), (6, YELLOW), (2, GREEN), (3, RED)])
-        );
-    }
-
-    #[test]
-    fn paint_7() {
+        [(3, RED), (3, GREEN), (2, BLUE), (3, GREEN), (3, RED)], 3, (6, YELLOW)
+        => vec![(3, RED), (6, YELLOW), (2, GREEN), (3, RED)];
+        "Test 16"
+    )]
+    #[test_case(
         //      __ ___
         // ___ ___ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (3, BLUE), (3, RED)]);
-        spans.paint(4, new_span(5, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(3, RED), (1, GREEN), (5, YELLOW), (3, RED)])
-        );
-
+        [(3, RED), (3, GREEN), (3, BLUE), (3, RED)], 4, (5, YELLOW)
+        => vec![(3, RED), (1, GREEN), (5, YELLOW), (3, RED)];
+        "Test 17"
+    )]
+    #[test_case(
         //      __ __ ___
         // ___ ___ __ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (2, BLUE), (3, GREEN), (3, RED)]);
-        spans.paint(4, new_span(7, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(3, RED), (1, GREEN), (7, YELLOW), (3, RED)])
-        );
-    }
-
-    #[test]
-    fn paint_8() {
+        [(3, RED), (3, GREEN), (2, BLUE), (3, GREEN), (3, RED)], 4, (7, YELLOW)
+        => vec![(3, RED), (1, GREEN), (7, YELLOW), (3, RED)];
+        "Test 18"
+    )]
+    #[test_case(
         //      __ __
         // ___ ___ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (3, BLUE), (3, RED)]);
-        spans.paint(4, new_span(4, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(3, RED), (1, GREEN), (4, YELLOW), (1, BLUE), (3, RED)])
-        );
-
+        [(3, RED), (3, GREEN), (3, BLUE), (3, RED)], 4, (4, YELLOW)
+        => vec![(3, RED), (1, GREEN), (4, YELLOW), (1, BLUE), (3, RED)];
+        "Test 19"
+    )]
+    #[test_case(
         //      __ __ __
         // ___ ___ __ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (2, BLUE), (3, GREEN), (3, RED)]);
-        spans.paint(4, new_span(6, YELLOW));
-
-        assert_eq!(
-            spans,
-            new_spans([(3, RED), (1, GREEN), (6, YELLOW), (1, GREEN), (3, RED)])
-        );
-    }
-
-    #[test]
-    fn paint_9() {
+        [(3, RED), (3, GREEN), (2, BLUE), (3, GREEN), (3, RED)], 4, (6, YELLOW)
+        => vec![(3, RED), (1, GREEN), (6, YELLOW), (1, GREEN), (3, RED)];
+        "Test 20"
+    )]
+    #[test_case(
         //      __ _____
         // ___ ___ ___
-
-        let mut spans = new_spans([(3, RED), (3, GREEN), (3, BLUE)]);
-        spans.paint(4, new_span(7, YELLOW));
-
-        assert_eq!(spans, new_spans([(3, RED), (1, GREEN), (5, YELLOW)]));
-
+        [(3, RED), (3, GREEN), (3, BLUE)], 4, (7, YELLOW)
+        => vec![(3, RED), (1, GREEN), (5, YELLOW)];
+        "Test 21"
+    )]
+    #[test_case(
         //     ___ _____
         // ___ ___ ___
+        [(3, RED), (3, GREEN), (3, BLUE)], 3, (8, YELLOW)
+        => vec![(3, RED), (6, YELLOW)];
+        "Test 22"
+    )]
+    fn paint(
+        initial: impl IntoIterator<Item = (u16, Color)>,
+        column: u16,
+        span: (u16, Color),
+    ) -> Vec<(u16, Color)> {
+        let mut spans = new_spans(initial);
+        spans.paint(column, new_span(span.0, span.1));
 
-        let mut spans = new_spans([(3, RED), (3, GREEN), (3, BLUE)]);
-        spans.paint(3, new_span(8, YELLOW));
-
-        assert_eq!(spans, new_spans([(3, RED), (6, YELLOW)]));
+        spans
+            .0
+            .into_iter()
+            .map(|span| (span.width, span.style.foreground))
+            .collect()
     }
 }
