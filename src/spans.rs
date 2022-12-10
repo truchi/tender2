@@ -25,6 +25,10 @@ pub type ScanMut<'a> = std::iter::Scan<
 pub struct Spans(Vec<Span>);
 
 impl Spans {
+    pub fn new(span: Span) -> Self {
+        Self(vec![span])
+    }
+
     pub fn width(&self) -> u16 {
         self.iter().map(|span| span.width).sum()
     }

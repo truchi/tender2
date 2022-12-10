@@ -18,12 +18,17 @@ impl Line {
         Self { str, width }
     }
 
-    pub fn paint(&mut self, column: u16, str: &str) {
+    pub fn cells(&self) -> cell::Cells {
+        cell::Cells::new(&self.str)
+    }
+
+    // TODO handle graphemes correctly on start/end
+    pub fn paint(&mut self, column: u16, str: &str) -> u16 {
         debug_assert!(!str.contains('\n'));
 
         // Nothing to do when `column` is outside the `Line`
         if column >= self.width {
-            return;
+            return 0;
         }
 
         // Find the width of `str`
@@ -34,7 +39,7 @@ impl Line {
                 .last();
 
             // There is nothing to paint
-            let Some(last) = last else { return; };
+            let Some(last) = last else { return 0; };
 
             (
                 // Crop after the last cell
@@ -53,7 +58,7 @@ impl Line {
 
             // We already `column` is inside the `Line`
             debug_assert!(cell.is_some());
-            let Some(cell) = cell else { return; };
+            let Some(cell) = cell else { return 0; };
 
             (
                 // We migth start on a wide cell
@@ -81,7 +86,7 @@ impl Line {
 
             // We already know `column + width` is inside the `Line`
             debug_assert!(cell.is_some());
-            let Some(cell) = cell else { return; };
+            let Some(cell) = cell else { return 0; };
 
             (
                 // We migth end on a wide cell
@@ -114,6 +119,8 @@ impl Line {
         if wide_end {
             self.str.insert(start + str.len(), ' ');
         }
+
+        width
     }
 }
 
@@ -122,31 +129,35 @@ mod tests {
     use super::*;
     use test_case::test_case;
 
-    #[test_case("abc🦀d🦀f", 0, "!!!" => "!!!🦀d🦀f"; "Paint at 0")]
-    #[test_case("abc🦀d🦀f", 1, "!!!" => "a!!! d🦀f"; "Paint at 1")]
-    #[test_case("abc🦀d🦀f", 2, "!!!" => "ab!!!d🦀f"; "Paint at 2")]
-    #[test_case("abc🦀d🦀f", 3, "!!!" => "abc!!!🦀f"; "Paint at 3")]
-    #[test_case("abc🦀d🦀f", 4, "!!!" => "abc !!! f"; "Paint at 4")]
-    #[test_case("abc🦀d🦀f", 5, "!!!" => "abc🦀!!!f"; "Paint at 5")]
-    #[test_case("abc🦀d🦀f", 6, "!!!" => "abc🦀d!!!"; "Paint at 6")]
-    #[test_case("abc🦀d🦀f", 7, "!!!" => "abc🦀d !!"; "Paint at 7")]
-    #[test_case("abc🦀d🦀f", 8, "!!!" => "abc🦀d🦀!"; "Paint at 8")]
-    #[test_case("abc🦀d🦀f", 9, "!!!" => "abc🦀d🦀f"; "Paint at 9")]
-    fn paint(initial: &str, column: u16, str: &str) -> String {
+    fn s(str: &str) -> String {
+        str.into()
+    }
+
+    #[test_case("abc🦀d🦀f", 0, "!!!" => (3, s("!!!🦀d🦀f")); "Paint at 0")]
+    #[test_case("abc🦀d🦀f", 1, "!!!" => (3, s("a!!! d🦀f")); "Paint at 1")]
+    #[test_case("abc🦀d🦀f", 2, "!!!" => (3, s("ab!!!d🦀f")); "Paint at 2")]
+    #[test_case("abc🦀d🦀f", 3, "!!!" => (3, s("abc!!!🦀f")); "Paint at 3")]
+    #[test_case("abc🦀d🦀f", 4, "!!!" => (3, s("abc !!! f")); "Paint at 4")]
+    #[test_case("abc🦀d🦀f", 5, "!!!" => (3, s("abc🦀!!!f")); "Paint at 5")]
+    #[test_case("abc🦀d🦀f", 6, "!!!" => (3, s("abc🦀d!!!")); "Paint at 6")]
+    #[test_case("abc🦀d🦀f", 7, "!!!" => (2, s("abc🦀d !!")); "Paint at 7")]
+    #[test_case("abc🦀d🦀f", 8, "!!!" => (1, s("abc🦀d🦀!")); "Paint at 8")]
+    #[test_case("abc🦀d🦀f", 9, "!!!" => (0, s("abc🦀d🦀f")); "Paint at 9")]
+    fn paint(initial: &str, column: u16, str: &str) -> (u16, String) {
         let width = initial.width();
         let mut line = Line::new(width as u16);
 
         line.paint(0, initial);
         assert_eq!(line.str, initial);
 
-        line.paint(column, str);
+        let w = line.paint(column, str);
         assert_eq!(line.str.width(), width);
 
-        line.str
+        (w, line.str)
     }
 }
 
-mod cell {
+pub mod cell {
     use super::*;
     use unicode_segmentation::UnicodeSegmentation;
 
@@ -158,7 +169,7 @@ mod cell {
         pub str: &'a str,
     }
 
-    #[derive(Debug)]
+    #[derive(Clone, Debug)]
     pub struct Cells<'a> {
         graphemes: Graphemes<'a>,
         index: usize,
@@ -183,6 +194,9 @@ mod cell {
             let index = self.index;
             let column = self.column;
             let width = str.width() as u16;
+
+            // `unicode_width` has trouble with some clusters (e.g. woman scientist emoji)
+            let width = width.min(2);
 
             self.index += str.len();
             self.column += width;
@@ -214,7 +228,7 @@ mod cell {
             const CRAB: &str = "🦀";
             const CRLF: &str = "\r\n";
 
-            let cell = |index, column, width, str| Cell {
+            let cell = |index, column, width, str| cell::Cell {
                 index,
                 column,
                 width,
