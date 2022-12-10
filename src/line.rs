@@ -1,11 +1,11 @@
 use super::*;
-use unicode_segmentation::Graphemes;
+use unicode_segmentation::{GraphemeCursor, GraphemeIncomplete, Graphemes, UnicodeSegmentation};
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 #[derive(Clone, Eq, PartialEq, Default, Debug)]
 pub struct Line {
-    str: String,
-    width: u16,
+    pub str: String,
+    pub width: u16,
 }
 
 impl Line {
@@ -20,6 +20,61 @@ impl Line {
 
     pub fn cells(&self) -> cell::Cells {
         cell::Cells::new(&self.str)
+    }
+
+    /// Adds `str` to the ['Line'].
+    pub fn push(&mut self, str: &str) {
+        fn width(str: &str) -> u16 {
+            str.graphemes(true)
+                .map(|grapheme| grapheme.width().max(2) as u16)
+                .sum()
+        }
+
+        // Easy
+        if str.is_empty() {
+            return;
+        }
+        // Peasy
+        else if self.str.len() == 0 {
+            self.str.push_str(str);
+            self.width = width(str);
+            return;
+        }
+
+        // Push the new part
+        let at = self.str.len();
+        self.str.push_str(str);
+
+        // We want to know if we are adding to a grapheme
+        let mut cursor = GraphemeCursor::new(at, self.str.len(), true);
+        let is_boundary = match cursor.is_boundary(&self.str, 0) {
+            Ok(is_boundary) => is_boundary,
+            _ => unreachable!(),
+        };
+
+        let str = if !is_boundary {
+            // We are adding to a grapheme: we want to know its range
+            let start = match cursor.prev_boundary(&self.str, 0) {
+                Ok(Some(start)) => start,
+                _ => unreachable!(),
+            };
+            let end = match cursor.next_boundary(&self.str, 0) {
+                Ok(Some(start)) => start,
+                _ => unreachable!(),
+            };
+
+            // Adjust the width for the overlapping grapheme
+            self.width -= width(&self.str[start..at]);
+            self.width += width(&self.str[start..end]);
+
+            // Give the new full graphemes
+            &self.str[end..]
+        } else {
+            str
+        };
+
+        // Add the width
+        self.width += width(str);
     }
 
     // TODO handle graphemes correctly on start/end
