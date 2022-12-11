@@ -2,73 +2,74 @@ use super::*;
 use unicode_segmentation::{GraphemeCursor, GraphemeIncomplete, Graphemes, UnicodeSegmentation};
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
+fn width(str: &str) -> u16 {
+    str.graphemes(true)
+        .map(|grapheme| grapheme.width().min(2) as u16)
+        .sum()
+}
+
 #[derive(Clone, Eq, PartialEq, Default, Debug)]
 pub struct Line {
-    pub str: String,
-    pub width: u16,
+    string: String,
+    width: u16,
 }
 
 impl Line {
-    pub fn new(width: u16) -> Self {
-        let mut str = String::with_capacity(width as usize);
-        for _ in 0..width {
-            str.push(' ');
-        }
+    pub fn new(string: String) -> Self {
+        let width = width(&string);
 
-        Self { str, width }
+        Self { width, string }
+    }
+
+    pub fn width(&self) -> u16 {
+        self.width
     }
 
     pub fn cells(&self) -> cell::Cells {
-        cell::Cells::new(&self.str)
+        cell::Cells::new(&self.string)
     }
 
     /// Adds `str` to the ['Line'].
     pub fn push(&mut self, str: &str) {
-        fn width(str: &str) -> u16 {
-            str.graphemes(true)
-                .map(|grapheme| grapheme.width().max(2) as u16)
-                .sum()
-        }
-
         // Easy
         if str.is_empty() {
             return;
         }
         // Peasy
-        else if self.str.len() == 0 {
-            self.str.push_str(str);
+        else if self.string.len() == 0 {
+            self.string.push_str(str);
             self.width = width(str);
             return;
         }
 
         // Push the new part
-        let at = self.str.len();
-        self.str.push_str(str);
+        let at = self.string.len();
+        self.string.push_str(str);
 
         // We want to know if we are adding to a grapheme
-        let mut cursor = GraphemeCursor::new(at, self.str.len(), true);
-        let is_boundary = match cursor.is_boundary(&self.str, 0) {
+        let mut cursor = GraphemeCursor::new(at, self.string.len(), true);
+        let is_boundary = match cursor.is_boundary(&self.string, 0) {
             Ok(is_boundary) => is_boundary,
             _ => unreachable!(),
         };
 
         let str = if !is_boundary {
             // We are adding to a grapheme: we want to know its range
-            let start = match cursor.prev_boundary(&self.str, 0) {
+            let start = match cursor.prev_boundary(&self.string, 0) {
                 Ok(Some(start)) => start,
                 _ => unreachable!(),
             };
-            let end = match cursor.next_boundary(&self.str, 0) {
+            let end = match cursor.next_boundary(&self.string, 0) {
                 Ok(Some(start)) => start,
                 _ => unreachable!(),
             };
 
             // Adjust the width for the overlapping grapheme
-            self.width -= width(&self.str[start..at]);
-            self.width += width(&self.str[start..end]);
+            self.width -= width(&self.string[start..at]);
+            self.width += width(&self.string[start..end]);
 
             // Give the new full graphemes
-            &self.str[end..]
+            &self.string[end..]
         } else {
             str
         };
@@ -77,7 +78,7 @@ impl Line {
         self.width += width(str);
     }
 
-    // TODO handle graphemes correctly on start/end
+    // TODO ZWNJ on start/end
     pub fn paint(&mut self, column: u16, str: &str) -> u16 {
         debug_assert!(!str.contains('\n'));
 
@@ -107,7 +108,7 @@ impl Line {
         // Find the index of `column` in the `Line`
         let (start, wide_start) = {
             // Find the cell at `column`
-            let cell = cell::Cells::new(&self.str)
+            let cell = cell::Cells::new(&self.string)
                 .skip_while(|cell| cell.column + cell.width <= column)
                 .next();
 
@@ -135,7 +136,7 @@ impl Line {
             let width = if wide_start { width + 1 } else { width };
 
             // Find the cell at `column + width`
-            let cell = cell::Cells::new(&self.str[start..])
+            let cell = cell::Cells::new(&self.string[start..])
                 .skip_while(|cell| cell.column + cell.width < width)
                 .next();
 
@@ -164,15 +165,15 @@ impl Line {
         let mut end = end;
 
         if wide_start {
-            self.str.insert(start, ' ');
+            self.string.insert(start, ' ');
             start += 1;
             end += 1;
         }
 
-        self.str.replace_range(start..end, str);
+        self.string.replace_range(start..end, str);
 
         if wide_end {
-            self.str.insert(start + str.len(), ' ');
+            self.string.insert(start + str.len(), ' ');
         }
 
         width
@@ -188,6 +189,29 @@ mod tests {
         str.into()
     }
 
+    #[test_case(""          , 0; "empty")]
+    #[test_case(" "         , 1; "space")]
+    #[test_case("a"         , 1; "a")]
+    #[test_case("🦀"        , 2; "crab")]
+    #[test_case("👩‍🔬", 2; "woman scientist")]
+    fn new(str: &str, width: u16) {
+        let line = Line::new(str.to_string());
+
+        assert_eq!(line.string, str);
+        assert_eq!(line.width, width);
+    }
+
+    #[test_case("abc🦀👩‍🔬def", 10; "Test 1")]
+    fn push(string: &str, width: u16) {
+        for (i, _) in string.char_indices() {
+            let mut line = Line::new(string[..i].to_string());
+            line.push(&string[i..]);
+
+            assert_eq!(line.string, string);
+            assert_eq!(line.width, width);
+        }
+    }
+
     #[test_case("abc🦀d🦀f", 0, "!!!" => (3, s("!!!🦀d🦀f")); "Paint at 0")]
     #[test_case("abc🦀d🦀f", 1, "!!!" => (3, s("a!!! d🦀f")); "Paint at 1")]
     #[test_case("abc🦀d🦀f", 2, "!!!" => (3, s("ab!!!d🦀f")); "Paint at 2")]
@@ -199,16 +223,13 @@ mod tests {
     #[test_case("abc🦀d🦀f", 8, "!!!" => (1, s("abc🦀d🦀!")); "Paint at 8")]
     #[test_case("abc🦀d🦀f", 9, "!!!" => (0, s("abc🦀d🦀f")); "Paint at 9")]
     fn paint(initial: &str, column: u16, str: &str) -> (u16, String) {
-        let width = initial.width();
-        let mut line = Line::new(width as u16);
-
-        line.paint(0, initial);
-        assert_eq!(line.str, initial);
+        let mut line = Line::new(initial.into());
+        let width = line.width;
 
         let w = line.paint(column, str);
-        assert_eq!(line.str.width(), width);
+        assert_eq!(line.width, width);
 
-        (w, line.str)
+        (w, line.string)
     }
 }
 

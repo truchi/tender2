@@ -9,11 +9,14 @@ pub struct Row {
 }
 
 impl Row {
-    pub fn new(width: u16, style: Style) -> Self {
-        Self {
-            line: Line::new(width),
-            spans: Spans::new(Span { width, style }),
-        }
+    pub fn new(string: String, style: Style) -> Self {
+        let line = Line::new(string);
+        let spans = Spans::new(vec![Span {
+            width: line.width(),
+            style,
+        }]);
+
+        Self { line, spans }
     }
 
     pub fn cells(&self) -> Cells {

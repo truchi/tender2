@@ -25,8 +25,8 @@ pub type ScanMut<'a> = std::iter::Scan<
 pub struct Spans(Vec<Span>);
 
 impl Spans {
-    pub fn new(span: Span) -> Self {
-        Self(vec![span])
+    pub fn new(spans: Vec<Span>) -> Self {
+        Self(spans)
     }
 
     pub fn width(&self) -> u16 {
