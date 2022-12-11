@@ -81,6 +81,10 @@ impl Spans {
     //         .find(|(i, c, span)| column < c + span.width)
     // }
 
+    pub fn push(&mut self, span: Span) {
+        self.0.push(span);
+    }
+
     // TODO handle same consecutive styles
     pub fn paint(&mut self, column: u16, span: Span) {
         let mut last = (0, 0, &default());

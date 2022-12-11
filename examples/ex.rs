@@ -12,7 +12,7 @@ use unicode_width::UnicodeWidthStr;
 
 fn main() {
     let str = include_str!("../test.txt");
-    let str = [str, "👩‍🔬"].concat();
+    let str = [str, "👩\u{200D}🔬"].concat();
     dbg!(collect(
         str.graphemes(true)
             .filter(|g| g.chars().count() > 2)
@@ -109,7 +109,7 @@ fn main3() {
 //     dbg!(collect(row.cells()));
 //     row.paint(0, "👩", green);
 //     dbg!(collect(row.cells()));
-//     row.paint(2, "‍🔬", blue);
+//     row.paint(2, "\u{200D}🔬", blue);
 //     dbg!(collect(row.cells())); // WRONG
 
 //     let mut row = Row::new(4, red);
@@ -118,7 +118,7 @@ fn main3() {
 //     dbg!(collect(row.cells()));
 //     row.paint(2, "🔬", blue);
 //     dbg!(collect(row.cells()));
-//     row.paint(2, "‍", blue);
+//     row.paint(2, "\u{200D}", blue);
 //     dbg!(collect(row.cells())); // PANIC
 // }
 

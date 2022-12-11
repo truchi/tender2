@@ -11,16 +11,19 @@ pub struct Row {
 impl Row {
     pub fn new(string: String, style: Style) -> Self {
         let line = Line::new(string);
-        let spans = Spans::new(vec![Span {
-            width: line.width(),
-            style,
-        }]);
+        let width = line.width();
+        let spans = Spans::new(vec![Span { width, style }]);
 
         Self { line, spans }
     }
 
     pub fn cells(&self) -> Cells {
         Cells::new(self)
+    }
+
+    pub fn push(&mut self, str: &str, style: Style) {
+        let width = self.line.push(str);
+        self.spans.push(Span { width, style });
     }
 
     pub fn paint(&mut self, column: u16, str: &str, style: Style) {

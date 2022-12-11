@@ -29,42 +29,52 @@ impl Line {
         cell::Cells::new(&self.string)
     }
 
-    /// Adds `str` to the ['Line'].
-    pub fn push(&mut self, str: &str) {
+    /// Adds `str` to the [`Line`] and returns the actual added width.
+    pub fn push(&mut self, str: &str) -> u16 {
         // Easy
         if str.is_empty() {
-            return;
+            return 0;
         }
         // Peasy
         else if self.string.len() == 0 {
+            let width = width(str);
+
             self.string.push_str(str);
-            self.width = width(str);
-            return;
+            self.width = width;
+
+            return width;
         }
 
         // Push the new part
         let at = self.string.len();
         self.string.push_str(str);
 
-        // We want to know if we are adding to a grapheme
+        // We may be joining to a grapheme
+        // Eg: `"blah👩\u{200D}".push("🔬blah")` will compose a woman scientist
         let mut cursor = GraphemeCursor::new(at, self.string.len(), true);
         let is_boundary = match cursor.is_boundary(&self.string, 0) {
             Ok(is_boundary) => is_boundary,
+            // We give the whole string to the cursor
             _ => unreachable!(),
         };
 
+        // The str without the overlapping grapheme, if any
         let str = if !is_boundary {
-            // We are adding to a grapheme: we want to know its range
+            // We are joining to a grapheme
             let start = match cursor.prev_boundary(&self.string, 0) {
                 Ok(Some(start)) => start,
+                // We give the whole string to the cursor
                 _ => unreachable!(),
             };
             let end = match cursor.next_boundary(&self.string, 0) {
                 Ok(Some(start)) => start,
+                // We give the whole string to the cursor
                 _ => unreachable!(),
             };
 
             // Adjust the width for the overlapping grapheme
+            // Due to the "woman scientist issue" in unicode_width
+            // we cannot simply `width += string[at..end]`...
             self.width -= width(&self.string[start..at]);
             self.width += width(&self.string[start..end]);
 
@@ -74,8 +84,11 @@ impl Line {
             str
         };
 
-        // Add the width
-        self.width += width(str);
+        // Add and return the width
+        let width = width(str);
+        self.width += width;
+
+        width
     }
 
     // TODO ZWNJ on start/end
@@ -185,11 +198,11 @@ mod tests {
 
     macro_rules! f { ($($tt:tt)*) => { format!($($tt)*) }; }
 
-    #[test_case(""          , 0; "empty")]
-    #[test_case(" "         , 1; "space")]
-    #[test_case("a"         , 1; "a")]
-    #[test_case("🦀"        , 2; "crab")]
-    #[test_case("👩‍🔬", 2; "woman scientist")]
+    #[test_case(""            , 0; "empty")]
+    #[test_case(" "           , 1; "space")]
+    #[test_case("a"           , 1; "a")]
+    #[test_case("🦀"          , 2; "crab")]
+    #[test_case("👩\u{200D}🔬", 2; "woman scientist")]
     fn new(str: &str, width: u16) {
         let line = Line::new(str.to_string());
 
@@ -197,7 +210,7 @@ mod tests {
         assert_eq!(line.width, width);
     }
 
-    #[test_case("abc🦀👩‍🔬def", 10; "Test 1")]
+    #[test_case("abc🦀👩\u{200D}🔬def", 10; "Test 1")]
     fn push(string: &str, width: u16) {
         for (i, _) in string.char_indices() {
             let mut line = Line::new(string[..i].to_string());
