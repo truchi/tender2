@@ -17,6 +17,11 @@ impl Row {
         Self { line, spans }
     }
 
+    pub fn width(&self) -> u16 {
+        debug_assert_eq!(self.line.width(), self.spans.width());
+        self.line.width()
+    }
+
     pub fn cells(&self) -> Cells {
         Cells::new(self)
     }
