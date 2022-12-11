@@ -89,11 +89,7 @@ impl Spans {
             .inspect(|(i, c, s)| last = (*i, *c, *s))
             .skip_while(|(i, c, s)| c + s.width <= column);
 
-        let start = if let Some(start) = scan.next() {
-            start
-        } else {
-            return;
-        };
+        let Some(start) = scan.next() else { return; };
 
         let end = if column + span.width <= start.1 + start.2.width {
             start
@@ -384,7 +380,10 @@ mod tests {
         span: (u16, Color),
     ) -> Vec<(u16, Color)> {
         let mut spans = new_spans(initial);
+        let width = spans.width();
+
         spans.paint(column, new_span(span.0, span.1));
+        assert_eq!(spans.width(), width);
 
         spans
             .0

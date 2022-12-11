@@ -159,21 +159,19 @@ impl Line {
         };
 
         // Replace `str` in the `Line`
-        // NOTE we can do better in terms of performance (copy once) but it would be unsafe...
+        {
+            // We include zero-width non-joiners (`\u{200C}`) around the painted columns
+            // to prevent graphemes to join before/after (this is a feature!)
+            // TODO do not include ZWNJ when already there or at the beginning/end of the line
+            let before = if wide_start { " \u{200C}" } else { "\u{200C}" };
+            let after = if wide_end { "\u{200C} " } else { "\u{200C}" };
 
-        let mut start = start;
-        let mut end = end;
-
-        if wide_start {
-            self.string.insert(start, ' ');
-            start += 1;
-            end += 1;
-        }
-
-        self.string.replace_range(start..end, str);
-
-        if wide_end {
-            self.string.insert(start + str.len(), ' ');
+            // NOTE we can do better in terms of performance (copy once) but it would be unsafe...
+            self.string.insert_str(start, before);
+            self.string
+                .replace_range(start + before.len()..end + before.len(), str);
+            self.string
+                .insert_str(start + before.len() + str.len(), after);
         }
 
         width
@@ -185,9 +183,7 @@ mod tests {
     use super::*;
     use test_case::test_case;
 
-    fn s(str: &str) -> String {
-        str.into()
-    }
+    macro_rules! f { ($($tt:tt)*) => { format!($($tt)*) }; }
 
     #[test_case(""          , 0; "empty")]
     #[test_case(" "         , 1; "space")]
@@ -212,16 +208,16 @@ mod tests {
         }
     }
 
-    #[test_case("abc🦀d🦀f", 0, "!!!" => (3, s("!!!🦀d🦀f")); "Paint at 0")]
-    #[test_case("abc🦀d🦀f", 1, "!!!" => (3, s("a!!! d🦀f")); "Paint at 1")]
-    #[test_case("abc🦀d🦀f", 2, "!!!" => (3, s("ab!!!d🦀f")); "Paint at 2")]
-    #[test_case("abc🦀d🦀f", 3, "!!!" => (3, s("abc!!!🦀f")); "Paint at 3")]
-    #[test_case("abc🦀d🦀f", 4, "!!!" => (3, s("abc !!! f")); "Paint at 4")]
-    #[test_case("abc🦀d🦀f", 5, "!!!" => (3, s("abc🦀!!!f")); "Paint at 5")]
-    #[test_case("abc🦀d🦀f", 6, "!!!" => (3, s("abc🦀d!!!")); "Paint at 6")]
-    #[test_case("abc🦀d🦀f", 7, "!!!" => (2, s("abc🦀d !!")); "Paint at 7")]
-    #[test_case("abc🦀d🦀f", 8, "!!!" => (1, s("abc🦀d🦀!")); "Paint at 8")]
-    #[test_case("abc🦀d🦀f", 9, "!!!" => (0, s("abc🦀d🦀f")); "Paint at 9")]
+    #[test_case("abc🦀d🦀f", 0, "!!!" => (3, f!("{ZWNJ}!!!{ZWNJ}🦀d🦀f")); "Paint at 0")]
+    #[test_case("abc🦀d🦀f", 1, "!!!" => (3, f!("a{ZWNJ}!!!{ZWNJ} d🦀f")); "Paint at 1")]
+    #[test_case("abc🦀d🦀f", 2, "!!!" => (3, f!("ab{ZWNJ}!!!{ZWNJ}d🦀f")); "Paint at 2")]
+    #[test_case("abc🦀d🦀f", 3, "!!!" => (3, f!("abc{ZWNJ}!!!{ZWNJ}🦀f")); "Paint at 3")]
+    #[test_case("abc🦀d🦀f", 4, "!!!" => (3, f!("abc {ZWNJ}!!!{ZWNJ} f")); "Paint at 4")]
+    #[test_case("abc🦀d🦀f", 5, "!!!" => (3, f!("abc🦀{ZWNJ}!!!{ZWNJ}f")); "Paint at 5")]
+    #[test_case("abc🦀d🦀f", 6, "!!!" => (3, f!("abc🦀d{ZWNJ}!!!{ZWNJ}")); "Paint at 6")]
+    #[test_case("abc🦀d🦀f", 7, "!!!" => (2, f!("abc🦀d {ZWNJ}!!{ZWNJ}")); "Paint at 7")]
+    #[test_case("abc🦀d🦀f", 8, "!!!" => (1, f!("abc🦀d🦀{ZWNJ}!{ZWNJ}")); "Paint at 8")]
+    #[test_case("abc🦀d🦀f", 9, "!!!" => (0, f!("abc🦀d🦀f")); "Paint at 9")]
     fn paint(initial: &str, column: u16, str: &str) -> (u16, String) {
         let mut line = Line::new(initial.into());
         let width = line.width;
