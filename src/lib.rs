@@ -1,10 +1,12 @@
 #![allow(unused)]
 
+pub mod canvas;
 pub mod line;
 pub mod row;
 pub mod spans;
 pub mod style;
 
+use canvas::*;
 use line::*;
 use row::*;
 use spans::*;

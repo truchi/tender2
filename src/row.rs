@@ -39,9 +39,10 @@ impl Row {
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
 pub struct Cell<'a> {
-    str: &'a str,
-    width: u16,
     style: Style,
+    column: u16,
+    width: u16,
+    str: &'a str,
 }
 
 #[derive(Clone, Debug)]
@@ -65,16 +66,21 @@ impl<'a> Iterator for Cells<'a> {
     type Item = Cell<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let cell = self.line.next()?;
+        let cell = match self.line.next() {
+            Some(cell) => cell,
+            None => {
+                debug_assert_eq!(self.span.width, 0);
+                debug_assert_eq!(self.spans.next(), None);
+                return None;
+            }
+        };
 
         if self.span.width == 0 {
             let span = self.spans.next().copied();
 
             // We know `Spans` covers the entire `Line` in a `Row`
             debug_assert!(span.is_some());
-            let Some(span) = span else { return None; };
-
-            self.span = span;
+            self.span = span?;
         }
 
         // If everything is right, this is OK
@@ -82,9 +88,10 @@ impl<'a> Iterator for Cells<'a> {
         self.span.width -= cell.width;
 
         Some(Cell {
-            str: cell.str,
-            width: cell.width,
             style: self.span.style,
+            column: cell.column,
+            width: cell.width,
+            str: cell.str,
         })
     }
 }
