@@ -3,8 +3,8 @@ use unicode_segmentation::{GraphemeCursor, GraphemeIncomplete, Graphemes, Unicod
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 fn width(str: &str) -> u16 {
-    str.graphemes(true)
-        .map(|grapheme| grapheme.width().min(2) as u16)
+    UnicodeSegmentation::graphemes(str, true)
+        .map(|grapheme| unicode_width::UnicodeWidthStr::width(grapheme).min(2) as u16)
         .sum()
 }
 
@@ -54,7 +54,7 @@ impl Line {
         let mut cursor = GraphemeCursor::new(at, self.string.len(), true);
         let is_boundary = match cursor.is_boundary(&self.string, 0) {
             Ok(is_boundary) => is_boundary,
-            // We give the whole string to the cursor
+            // We gave the whole string to the cursor
             _ => unreachable!(),
         };
 
@@ -63,17 +63,17 @@ impl Line {
             // We are joining to a grapheme
             let start = match cursor.prev_boundary(&self.string, 0) {
                 Ok(Some(start)) => start,
-                // We give the whole string to the cursor
+                // We gave the whole string to the cursor
                 _ => unreachable!(),
             };
             let end = match cursor.next_boundary(&self.string, 0) {
                 Ok(Some(start)) => start,
-                // We give the whole string to the cursor
+                // We gave the whole string to the cursor
                 _ => unreachable!(),
             };
 
             // Adjust the width for the overlapping grapheme
-            // Due to the "woman scientist issue" in unicode_width
+            // Due to the "woman scientist issue" in `unicode_width`
             // we cannot simply `width += string[at..end]`...
             self.width -= width(&self.string[start..at]);
             self.width += width(&self.string[start..end]);
@@ -264,7 +264,7 @@ pub mod cell {
     impl<'a> Cells<'a> {
         pub fn new(str: &'a str) -> Self {
             Self {
-                graphemes: str.graphemes(true),
+                graphemes: UnicodeSegmentation::graphemes(str, true),
                 index: 0,
                 column: 0,
             }
@@ -278,7 +278,7 @@ pub mod cell {
             let str = self.graphemes.next()?;
             let index = self.index;
             let column = self.column;
-            let width = str.width() as u16;
+            let width = unicode_width::UnicodeWidthStr::width(str) as u16;
 
             // `unicode_width` has trouble with some clusters (e.g. woman scientist emoji)
             let width = width.min(2);

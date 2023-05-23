@@ -1,7 +1,6 @@
 #![allow(unused)]
 
 use std::time::Instant;
-
 use tender::{
     line::Line,
     row::Row,
@@ -11,6 +10,41 @@ use unicode_segmentation::{GraphemeCursor, GraphemeIncomplete, UnicodeSegmentati
 use unicode_width::UnicodeWidthStr;
 
 fn main() {
+    let str1 = include_str!("../test.txt");
+    let str2 = "\u{200C}ab\u{200C}cde\u{200C}fghijklmno\u{200C}pqrstuvwxyz\u{200C}\n\u{200C}ABCDEFGHIJKLMNOPQ\u{200C}RSTUVWXYZ{[(<>)]},?;.:/!§\u{200C}";
+
+    fn test(str: &str, mul: usize) {
+        let mut string = String::from(str);
+
+        for _ in 0..mul {
+            string.push_str(str);
+        }
+
+        let now = Instant::now();
+        let tender_graphemes = tender::unicode::graphemes::Graphemes::new(&string);
+        let tender_count = tender_graphemes.count();
+        dbg!(now.elapsed());
+
+        let now = Instant::now();
+        let unicode_graphemes = string.graphemes(true);
+        let unicode_count = unicode_graphemes.count();
+        dbg!(now.elapsed());
+
+        assert!(tender_count == unicode_count);
+    }
+
+    test(str1, 100);
+    test(str2, 1_000_000);
+
+    let a = collect(str1.graphemes(true));
+    let b = collect(tender::unicode::graphemes::Graphemes::new(str1));
+    assert!(a == b);
+    let a = collect(str2.graphemes(true));
+    let b = collect(tender::unicode::graphemes::Graphemes::new(str2));
+    assert!(a == b);
+}
+
+fn main2() {
     let str = include_str!("../test.txt");
     let str = [str, "👩\u{200D}🔬"].concat();
     dbg!(collect(
